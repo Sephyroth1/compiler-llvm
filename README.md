@@ -80,3 +80,26 @@ import module
 
 ### Features to be added
 - A lot more features to be added, Stay Tuned!
+
+### Execution
+
+1. Git clone this repository (Or Fork it for changes)
+```sh
+git clone https://github.com/Sephroth1/compiler-llvm.git
+```
+
+2. go to the root directory of the project
+```sh
+cd compiler-llvm/Syntexa
+```
+
+3. Build the project
+```sh
+./gradlew build
+```
+
+4. Run the project
+```sh
+./gradlew run
+```
+### Note: If you want to give a separate input, go to the src/main/java/org/example/App.java and Edit the main function's String input

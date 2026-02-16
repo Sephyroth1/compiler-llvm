@@ -36,14 +36,26 @@ class Parser {
 
     public int infixBinding(Token t) {
         switch (t.getType()) {
+            case EQUAL:
+                return 5; // assignment
+            case OR:
+                return 6; // ||
+            case AND:
+                return 7; // &&
+            case EQEQ:
+            case NOT_EQ:
+                return 8; // == !=
+            case LESS:
+            case GREATER:
+            case LESS_EQ:
+            case GREATER_EQ:
+                return 9; // comparisons
             case PLUS:
             case MINUS:
                 return 10;
             case TIMES:
             case DIVIDE:
                 return 20;
-            case EQUAL:
-                return 5;
             default:
                 return 0;
         }
@@ -55,11 +67,11 @@ class Parser {
 
     public Expr parsePrefix() {
         Token t = peek();
+
         switch (t.getType()) {
             case MINUS:
-                next();
-                return new UnaryExpr(t, parseExpr(30));
             case PLUS:
+            case BANG:
                 next();
                 return new UnaryExpr(t, parseExpr(30));
             case NUMBER:
@@ -100,7 +112,16 @@ class Parser {
             }
 
             Expr right = parseExpr(binding + 1);
-            left = new BinaryExpr(left, t, right);
+            switch (t.getType()) {
+                case AND:
+                    left = new LogicalAndExpr(left, right);
+                    break;
+                case OR:
+                    left = new LogicalOrExpr(left, right);
+                    break;
+                default:
+                    left = new BinaryExpr(left, t, right);
+            }
         }
 
         return left;

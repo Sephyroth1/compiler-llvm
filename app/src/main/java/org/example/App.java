@@ -5,7 +5,15 @@ import java.util.List;
 public class App {
 
     public static void main(String[] args) {
-        String input = "let x = 4\n{ x = 4\ny = 4 }";
+        String input = """
+            let a = 3
+            let b = 4
+            let c = a + b
+            let d = a < b
+            let e = d && true
+            let f = !a == b
+            a = 5
+            """;
         Lexer lexer = new Lexer(input);
         List<Token> tokens = lexer.tokenize();
         tokens.stream().forEach(System.out::println);

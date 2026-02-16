@@ -7,15 +7,22 @@ class Lexer {
 
     String input;
     int pos;
+    int line;
 
     Lexer(String input) {
         this.input = input;
         this.pos = 0;
+        this.line = 1;
     }
 
     char peek() {
         if (pos >= input.length()) return '\0';
         return input.charAt(pos);
+    }
+
+    char peekNext() {
+        if (pos + 1 >= input.length()) return '\0';
+        return input.charAt(pos + 1);
     }
 
     char next() {
@@ -24,81 +31,159 @@ class Lexer {
     }
 
     List<Token> tokenize() {
-        int line = 0;
         List<Token> tokens = new ArrayList<>();
+
         while (pos < input.length()) {
             char c = peek();
-            StringBuilder sb = new StringBuilder();
+
+            // -------- NEWLINE ----------
+            if (c == '\n') {
+                line++;
+                next();
+                continue;
+            }
+
+            // -------- WHITESPACE ----------
+            if (Character.isWhitespace(c)) {
+                next();
+                continue;
+            }
+
+            // -------- NUMBER ----------
             if (Character.isDigit(c)) {
+                StringBuilder sb = new StringBuilder();
                 while (Character.isDigit(peek())) {
                     sb.append(next());
                 }
                 tokens.add(new Token(TokenType.NUMBER, sb.toString(), line));
-            } else if (Character.isAlphabetic(c)) {
-                while (Character.isAlphabetic(peek())) {
+                continue;
+            }
+
+            // -------- IDENTIFIER / KEYWORD ----------
+            if (Character.isLetter(c) || c == '_') {
+                StringBuilder sb = new StringBuilder();
+                while (Character.isLetterOrDigit(peek()) || peek() == '_') {
                     sb.append(next());
                 }
-                if (
-                    sb.toString().equals("true") ||
-                    sb.toString().equals("false")
-                ) {
-                    tokens.add(
-                        new Token(TokenType.BOOLEAN, sb.toString(), line)
-                    );
-                } else if (sb.toString().equals("let")) {
-                    tokens.add(new Token(TokenType.LET, sb.toString(), line));
-                } else {
-                    tokens.add(
-                        new Token(TokenType.IDENTIFIER, sb.toString(), line)
-                    );
-                }
-            } else if (Character.isWhitespace(c)) {
-                next();
-            } else if (
-                !Character.isAlphabetic(c) && !Character.isWhitespace(c)
-            ) {
-                switch (c) {
-                    case '+':
-                        tokens.add(new Token(TokenType.PLUS, "+", line));
-                        next();
+
+                String word = sb.toString();
+
+                switch (word) {
+                    case "true":
+                    case "false":
+                        tokens.add(new Token(TokenType.BOOLEAN, word, line));
                         break;
-                    case '-':
-                        tokens.add(new Token(TokenType.MINUS, "-", line));
-                        next();
-                        break;
-                    case '*':
-                        tokens.add(new Token(TokenType.TIMES, "*", line));
-                        next();
-                        break;
-                    case '/':
-                        tokens.add(new Token(TokenType.DIVIDE, "/", line));
-                        next();
-                        break;
-                    case '=':
-                        tokens.add(new Token(TokenType.EQUAL, "=", line));
-                        next();
-                        break;
-                    case '{':
-                        tokens.add(new Token(TokenType.LEFT_PAREN, "{", line));
-                        next();
-                        break;
-                    case '}':
-                        tokens.add(new Token(TokenType.RIGHT_PAREN, "}", line));
-                        next();
+                    case "let":
+                        tokens.add(new Token(TokenType.LET, word, line));
                         break;
                     default:
-                        throw new IllegalArgumentException(
-                            "Unexpected character: " + c
-                        );
+                        tokens.add(new Token(TokenType.IDENTIFIER, word, line));
                 }
-            } else if (Character.isWhitespace(c)) {
-                if (c == '\n') line++;
-                next();
                 continue;
-            } else if (c == '\n') {
-                line++;
+            }
+
+            // -------- OPERATORS ----------
+            switch (c) {
+                case '+':
+                    tokens.add(new Token(TokenType.PLUS, "+", line));
+                    next();
+                    break;
+                case '-':
+                    tokens.add(new Token(TokenType.MINUS, "-", line));
+                    next();
+                    break;
+                case '*':
+                    tokens.add(new Token(TokenType.TIMES, "*", line));
+                    next();
+                    break;
+                case '/':
+                    tokens.add(new Token(TokenType.DIVIDE, "/", line));
+                    next();
+                    break;
+                // = and ==
+                case '=':
+                    if (peekNext() == '=') {
+                        next();
+                        next();
+                        tokens.add(new Token(TokenType.EQEQ, "==", line));
+                    } else {
+                        next();
+                        tokens.add(new Token(TokenType.EQUAL, "=", line));
+                    }
+                    break;
+                // ! and !=
+                case '!':
+                    if (peekNext() == '=') {
+                        next();
+                        next();
+                        tokens.add(new Token(TokenType.NOT_EQ, "!=", line));
+                    } else {
+                        next();
+                        tokens.add(new Token(TokenType.BANG, "!", line));
+                    }
+                    break;
+                // < and <=
+                case '<':
+                    if (peekNext() == '=') {
+                        next();
+                        next();
+                        tokens.add(new Token(TokenType.LESS_EQ, "<=", line));
+                    } else {
+                        next();
+                        tokens.add(new Token(TokenType.LESS, "<", line));
+                    }
+                    break;
+                // > and >=
+                case '>':
+                    if (peekNext() == '=') {
+                        next();
+                        next();
+                        tokens.add(new Token(TokenType.GREATER_EQ, ">=", line));
+                    } else {
+                        next();
+                        tokens.add(new Token(TokenType.GREATER, ">", line));
+                    }
+                    break;
+                // &&
+                case '&':
+                    if (peekNext() == '&') {
+                        next();
+                        next();
+                        tokens.add(new Token(TokenType.AND, "&&", line));
+                    } else {
+                        throw new IllegalArgumentException(
+                            "Unexpected character '&' at line " + line
+                        );
+                    }
+                    break;
+                // ||
+                case '|':
+                    if (peekNext() == '|') {
+                        next();
+                        next();
+                        tokens.add(new Token(TokenType.OR, "||", line));
+                    } else {
+                        throw new IllegalArgumentException(
+                            "Unexpected character '|' at line " + line
+                        );
+                    }
+                    break;
+                // BLOCKS
+                case '{':
+                    tokens.add(new Token(TokenType.LEFT_PAREN, "{", line));
+                    next();
+                    break;
+                case '}':
+                    tokens.add(new Token(TokenType.RIGHT_PAREN, "}", line));
+                    next();
+                    break;
+                default:
+                    throw new IllegalArgumentException(
+                        "Unexpected character '" + c + "' at line " + line
+                    );
             }
         }
+
         tokens.add(new Token(TokenType.EOF, "", line));
         return tokens;
     }

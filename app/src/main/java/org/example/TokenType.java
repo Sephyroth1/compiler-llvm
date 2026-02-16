@@ -14,4 +14,13 @@ enum TokenType {
     LET,
     LEFT_PAREN,
     RIGHT_PAREN,
+    EQEQ,
+    BANG,
+    NOT_EQ,
+    LESS,
+    LESS_EQ,
+    GREATER,
+    GREATER_EQ,
+    OR,
+    AND,
 }

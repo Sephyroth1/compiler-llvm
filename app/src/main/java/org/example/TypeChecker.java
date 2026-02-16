@@ -10,8 +10,7 @@ class TypeChecker {
     private final Deque<Map<String, Type>> scopes = new ArrayDeque<>();
 
     public TypeChecker() {
-        // global scope
-        scopes.push(new HashMap<>());
+        scopes.push(new HashMap<>()); // global scope
     }
 
     /* -------------------- EXPRESSIONS -------------------- */
@@ -22,6 +21,8 @@ class TypeChecker {
         if (e instanceof UnaryExpr u) return visitUnary(u);
         if (e instanceof IdentifierExpr i) return visitIdentifier(i);
         if (e instanceof AssignExpr a) return visitAssign(a);
+        if (e instanceof LogicalAndExpr l) return visitLogicalAnd(l);
+        if (e instanceof LogicalOrExpr l) return visitLogicalOr(l);
 
         throw new IllegalArgumentException("Unknown expression: " + e);
     }
@@ -39,7 +40,7 @@ class TypeChecker {
     }
 
     private Type visitAssign(AssignExpr e) {
-        Type existing = lookup(e.name); // must already exist
+        Type existing = lookup(e.name);
         Type valueType = visitExpr(e.value);
 
         if (existing != valueType) throw new IllegalArgumentException(
@@ -55,6 +56,10 @@ class TypeChecker {
         switch (e.op.getType()) {
             case MINUS:
                 if (operand == Type.INT) return e.type = Type.INT;
+                break;
+            case BANG:
+                if (operand == Type.BOOL) return e.type = Type.BOOL;
+                break;
         }
 
         throw new IllegalArgumentException("Invalid unary operator");
@@ -65,15 +70,52 @@ class TypeChecker {
         Type right = visitExpr(e.right);
 
         switch (e.operator.getType()) {
+            // arithmetic
             case PLUS:
             case MINUS:
             case TIMES:
             case DIVIDE:
                 if (left == Type.INT && right == Type.INT) return e.type =
                     Type.INT;
+                break;
+            // equality
+            case EQEQ:
+            case NOT_EQ:
+                if (left == right) return e.type = Type.BOOL;
+                break;
+            // comparisons
+            case LESS:
+            case LESS_EQ:
+            case GREATER:
+            case GREATER_EQ:
+                if (left == Type.INT && right == Type.INT) return e.type =
+                    Type.BOOL;
+                break;
         }
 
         throw new IllegalArgumentException("Invalid binary expression");
+    }
+
+    private Type visitLogicalAnd(LogicalAndExpr e) {
+        Type left = visitExpr(e.getLeft());
+        Type right = visitExpr(e.getRight());
+
+        if (
+            left != Type.BOOL || right != Type.BOOL
+        ) throw new IllegalArgumentException("Type mismatch in logical AND");
+
+        return e.type = Type.BOOL;
+    }
+
+    private Type visitLogicalOr(LogicalOrExpr e) {
+        Type left = visitExpr(e.getLeft());
+        Type right = visitExpr(e.getRight());
+
+        if (
+            left != Type.BOOL || right != Type.BOOL
+        ) throw new IllegalArgumentException("Type mismatch in logical OR");
+
+        return e.type = Type.BOOL;
     }
 
     /* -------------------- STATEMENTS -------------------- */
@@ -85,7 +127,8 @@ class TypeChecker {
         }
 
         if (s instanceof LetStmt l) {
-            declare(l.getName(), visitExpr(l.getValue()));
+            Type t = visitExpr(l.getValue());
+            declare(l.getName(), t);
             return;
         }
 
