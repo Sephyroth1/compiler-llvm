@@ -113,5 +113,5 @@ a + b
 ./gradlew runLLVM -Pfile="input.txt"
 ```
 
-### Note: You need to have llvm installed on your machine, at the very least you need clangd for this
+### Note: You need to have llvm installed on your machine, at the very least you need clang for this
 ### Note: This language can only compile basic programs, Not even a return instruction yet
