@@ -53,11 +53,11 @@ class TypeChecker {
     private Type visitUnary(UnaryExpr e) {
         Type operand = visitExpr(e.expr);
 
-        switch (e.op.getType()) {
-            case MINUS:
+        switch (e.op) {
+            case NEG:
                 if (operand == Type.INT) return e.type = Type.INT;
                 break;
-            case BANG:
+            case NOT:
                 if (operand == Type.BOOL) return e.type = Type.BOOL;
                 break;
         }
@@ -69,12 +69,12 @@ class TypeChecker {
         Type left = visitExpr(e.left);
         Type right = visitExpr(e.right);
 
-        switch (e.operator.getType()) {
+        switch (e.operator) {
             // arithmetic
-            case PLUS:
-            case MINUS:
-            case TIMES:
-            case DIVIDE:
+            case ADD:
+            case SUB:
+            case MUL:
+            case DIV:
                 if (left == Type.INT && right == Type.INT) return e.type =
                     Type.INT;
                 break;
@@ -137,7 +137,17 @@ class TypeChecker {
             return;
         }
 
+        if (s instanceof IfStmt i) {
+            visitIfStmt(i);
+            return;
+        }
         throw new IllegalArgumentException("Unknown statement: " + s);
+    }
+
+    private void visitIfStmt(IfStmt i) {
+        visitExpr(i.condition);
+        visitBlock(i.thenBranch);
+        if (i.elseBranch != null) visitBlock(i.elseBranch);
     }
 
     private void visitBlock(BlockStmt b) {

@@ -23,4 +23,8 @@ enum TokenType {
     GREATER_EQ,
     OR,
     AND,
+    IF,
+    ELSE,
+    LEFT_BRACKET,
+    RIGHT_BRACKET,
 }

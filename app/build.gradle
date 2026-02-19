@@ -42,3 +42,19 @@ application {
     // Define the main class for the application.
     mainClass = 'org.example.App'
 }
+
+tasks.register("compileLLVM", Exec) {
+    dependsOn run
+    commandLine "clang", "out.ll", "-o", "out.exe"
+}
+
+tasks.register("runProgram", Exec) {
+    dependsOn compileLLVM
+    commandLine "cmd", "/c", "out.exe & echo EXIT:%ERRORLEVEL%"
+}
+
+run {
+    if (project.hasProperty("file")) {
+        args project.property("file")
+    }
+}

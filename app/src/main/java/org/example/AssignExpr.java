@@ -11,7 +11,14 @@ class AssignExpr extends Expr {
     }
 
     @Override
+    public Register lower(Builder builder) {
+        Register reg = value.lower(builder);
+        builder.env.define(name, reg);
+        return reg;
+    }
+
+    @Override
     public String stringify() {
-        return String.format("( = %s %s)", name, value.stringify());
+        return String.format("%s = %s)", name, value.stringify());
     }
 }

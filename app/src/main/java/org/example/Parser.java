@@ -73,7 +73,7 @@ class Parser {
             case PLUS:
             case BANG:
                 next();
-                return new UnaryExpr(t, parseExpr(30));
+                return new UnaryExpr(fromToken(t.getType()), parseExpr(30));
             case NUMBER:
                 next();
                 return new LiteralExpr(Integer.parseInt(t.getLexeme()));
@@ -83,9 +83,21 @@ class Parser {
             case IDENTIFIER:
                 next();
                 return new IdentifierExpr(t.getLexeme());
+            case LEFT_BRACKET:
+                return GroupedExpr();
             default:
                 throw new IllegalArgumentException("Unexpected token: " + t);
         }
+    }
+
+    public Expr GroupedExpr() {
+        next();
+        Expr expr = parseExpr(0);
+        if (
+            peek().getType() != TokenType.RIGHT_BRACKET
+        ) throw new IllegalArgumentException("Expected right bracket");
+        next();
+        return expr;
     }
 
     public Expr parseExpr(int minBind) {
@@ -120,7 +132,7 @@ class Parser {
                     left = new LogicalOrExpr(left, right);
                     break;
                 default:
-                    left = new BinaryExpr(left, t, right);
+                    left = new BinaryExpr(left, fromToken(t.getType()), right);
             }
         }
 
@@ -159,6 +171,20 @@ class Parser {
                 return new LetStmt(name.getLexeme(), init);
             case LEFT_PAREN:
                 return parseBlockStmt();
+            case IF:
+                next();
+                Expr condition = parseExpr(0);
+                if (
+                    peek().getType() != TokenType.LEFT_PAREN
+                ) throw new IllegalArgumentException("Expected '(' after 'if'");
+
+                BlockStmt thenBranch = parseBlockStmt();
+                BlockStmt elseBranch = new BlockStmt(new ArrayList<>());
+                if (peek().getType() == TokenType.ELSE) {
+                    next(); // consume 'else'
+                    elseBranch = parseBlockStmt();
+                }
+                return new IfStmt(condition, thenBranch, elseBranch);
             default:
                 return new ExprStmt(parseExpr(0));
         }
@@ -177,5 +203,20 @@ class Parser {
         }
         if (!isAtEnd()) next(); // consume '}'
         return new BlockStmt(stmts);
+    }
+
+    Op fromToken(TokenType type) {
+        switch (type) {
+            case PLUS:
+                return Op.ADD;
+            case MINUS:
+                return Op.SUB;
+            case TIMES:
+                return Op.MUL;
+            case DIVIDE:
+                return Op.DIV;
+            default:
+                throw new IllegalArgumentException("Invalid token type");
+        }
     }
 }

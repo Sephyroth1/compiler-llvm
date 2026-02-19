@@ -76,6 +76,12 @@ class Lexer {
                     case "let":
                         tokens.add(new Token(TokenType.LET, word, line));
                         break;
+                    case "if":
+                        tokens.add(new Token(TokenType.IF, word, line));
+                        break;
+                    case "else":
+                        tokens.add(new Token(TokenType.ELSE, word, line));
+                        break;
                     default:
                         tokens.add(new Token(TokenType.IDENTIFIER, word, line));
                 }
@@ -175,6 +181,14 @@ class Lexer {
                     break;
                 case '}':
                     tokens.add(new Token(TokenType.RIGHT_PAREN, "}", line));
+                    next();
+                    break;
+                case '(':
+                    tokens.add(new Token(TokenType.LEFT_BRACKET, "(", line));
+                    next();
+                    break;
+                case ')':
+                    tokens.add(new Token(TokenType.RIGHT_BRACKET, ")", line));
                     next();
                     break;
                 default:

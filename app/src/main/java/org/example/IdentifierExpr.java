@@ -13,6 +13,11 @@ class IdentifierExpr extends Expr {
     }
 
     @Override
+    public Register lower(Builder builder) {
+        return builder.env.lookup(name);
+    }
+
+    @Override
     public String stringify() {
         return name;
     }
