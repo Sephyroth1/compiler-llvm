@@ -1,11 +1,16 @@
 package org.example;
 
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
 class Builder {
 
     BasicBlock current;
     Function fn;
     int id = 0;
     Environment env;
+    Map<String, Callable> callableMap = new HashMap<>();
 
     Register newRegister(Type type) {
         return new Register(id++, type);
@@ -117,82 +122,38 @@ class Builder {
         }
     }
 
-    Function lowerFunction(FnDecl fnDecl) {
-        Builder b = new Builder();
-        b.fn = new Function(fnDecl.name);
-        b.env = new Environment();
-        BasicBlock entry = b.newBlock("entry");
-        b.positionAtEnd(entry);
-        lowerStmt(fnDecl.body, b);
-        if (b.current.getTerminator() == null) {
-            Register zero = b.constInt(0);
-            b.ret(zero);
-        } else {
-            System.out.println(
-                "Block " +
-                    b.current.getTerminator().stringify() +
-                    " is terminated"
-            );
-        }
-        return b.fn;
+    public Register icmpInst(Register lhs, Register rhs, Op op) {
+        Register dst = newRegister(Type.BOOL);
+        ICmpInst inst = new ICmpInst(dst, lhs, rhs, op);
+        current.addInstruction(inst);
+        return dst;
     }
 
-    void lowerStmt(Stmt body, Builder b) {
-        if (body instanceof BlockStmt) {
-            b.pushScope();
-            for (Stmt stmt : ((BlockStmt) body).getStmts()) {
-                lowerStmt(stmt, b);
+    public Register callInst(Register func, List<Register> args) {
+        Register dst = newRegister(func.type);
+        CallInst inst = new CallInst(dst, func, args);
+        current.addInstruction(inst);
+        return dst;
+    }
+
+    public Register emitPrintf(Register value) {
+        Register dst = newRegister(Type.VOID);
+        PrintInst inst = new PrintInst(dst, value);
+        current.addInstruction(inst);
+        return dst;
+    }
+
+    Callable resolveCallable(Expr c) {
+        if (c instanceof IdentifierExpr i) {
+            String name = i.getName();
+            Callable callable = callableMap.get(name);
+            if (callable != null) {
+                if (name.equals("print")) {
+                    return new BuiltInFunction();
+                }
+                return callable;
             }
-            b.popScope();
         }
-
-        if (body instanceof IfStmt i) {
-            lowerIfStmt(i, b);
-            return;
-        }
-
-        if (body instanceof LetStmt l) {
-            lowerLetStmt(l, b);
-            return;
-        }
-
-        if (body instanceof ExprStmt e) {
-            e.getExpr().lower(b);
-            return;
-        }
-    }
-
-    void lowerIfStmt(IfStmt i, Builder b) {
-        BasicBlock thenBlock = b.newBlock("if.then");
-        BasicBlock elseBlock = b.newBlock("if.else");
-        BasicBlock mergeBlock = b.newBlock("if.merge");
-
-        // 1. evaluate condition in current block
-        Register cond = i.condition.lower(b);
-
-        // 2. branch based on condition
-        b.branchInst(cond, thenBlock, elseBlock);
-
-        // ----- THEN -----
-        b.positionAtEnd(thenBlock);
-        lowerStmt(i.thenBranch, b);
-        if (b.current.getTerminator() == null) b.jumpInst(mergeBlock);
-        BasicBlock thenEnd = b.current;
-
-        // ----- ELSE -----
-        b.positionAtEnd(elseBlock);
-        if (i.elseBranch != null) lowerStmt(i.elseBranch, b);
-        if (b.current.getTerminator() == null) b.jumpInst(mergeBlock);
-        BasicBlock elseEnd = b.current;
-
-        // ----- MERGE -----
-        b.positionAtEnd(mergeBlock);
-
-        // (phi insertion happens later when variables differ)
-    }
-
-    void lowerLetStmt(LetStmt l, Builder b) {
-        Register val = l.getValue().lower(b);
-        b.env.define(l.getName(), val);
+        throw new IllegalArgumentException("Unknown callable: " + c);
     }
 }

@@ -15,4 +15,21 @@ class FnDecl {
         this.params = params;
         this.returnType = returnType;
     }
+
+    @Override
+    public String toString() {
+        return (
+            "FnDecl{" +
+            "name='" +
+            name +
+            '\'' +
+            ", body=" +
+            body.stringify() +
+            ", params=" +
+            params +
+            ", returnType=" +
+            returnType +
+            '}'
+        );
+    }
 }

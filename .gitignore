@@ -58,3 +58,6 @@ local.properties
 # Logs
 # ---
 /*.log
+
+out.exe
+out.ll

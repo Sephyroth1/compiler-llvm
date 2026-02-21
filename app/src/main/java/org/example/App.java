@@ -1,6 +1,8 @@
 package org.example;
 
 import java.io.IOException;
+import java.io.PrintWriter;
+import java.io.StringWriter;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
@@ -38,7 +40,9 @@ public class App {
                 Type.VOID
             );
             Builder b = new Builder();
-            Function fn = b.lowerFunction(fnDecl);
+            b.callableMap.put("print", new BuiltInFunction());
+            Lowerer lowerer = new Lowerer(b);
+            Function fn = lowerer.lowerFunction(fnDecl);
             String code = fn.emitter();
             Files.writeString(Path.of("out.ll"), code);
         } catch (IOException e) {
@@ -46,13 +50,17 @@ public class App {
                 "Error reading file: " + e.getMessage() + " " + e
             );
         } catch (Exception e) {
+            StringWriter sw = new StringWriter();
+            PrintWriter pw = new PrintWriter(sw);
+            e.printStackTrace(pw);
+            String stackTrace = sw.toString();
             System.err.println(
                 "Error parsing or type checking: " +
                     e.getMessage() +
                     " " +
                     e +
                     " " +
-                    Arrays.toString(e.getStackTrace())
+                    stackTrace
             );
         }
     }

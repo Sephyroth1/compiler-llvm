@@ -82,6 +82,9 @@ class Lexer {
                     case "else":
                         tokens.add(new Token(TokenType.ELSE, word, line));
                         break;
+                    case "return":
+                        tokens.add(new Token(TokenType.RETURN, word, line));
+                        break;
                     default:
                         tokens.add(new Token(TokenType.IDENTIFIER, word, line));
                 }
@@ -116,6 +119,10 @@ class Lexer {
                         next();
                         tokens.add(new Token(TokenType.EQUAL, "=", line));
                     }
+                    break;
+                case ',':
+                    tokens.add(new Token(TokenType.COMMA, ",", line));
+                    next();
                     break;
                 // ! and !=
                 case '!':

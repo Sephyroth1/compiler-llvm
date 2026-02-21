@@ -41,9 +41,14 @@ class BasicBlock {
 
     String stringify() {
         StringBuilder sb = new StringBuilder();
+        sb.append(name + ":");
+        sb.append("\n   ");
         for (Inst inst : instructions) {
             sb.append(inst.stringify());
             sb.append("\n");
+            if (inst.equals(instructions.get(instructions.size() - 1))) {
+                break;
+            }
             sb.append("   ");
         }
 

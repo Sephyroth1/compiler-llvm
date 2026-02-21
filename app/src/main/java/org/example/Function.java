@@ -15,9 +15,8 @@ class Function {
 
     void print() {
         System.out.println("define i32 @main {");
-        System.out.println("entry:");
         for (BasicBlock block : blocks) {
-            System.out.println("   " + block.stringify());
+            System.out.println(block.stringify());
         }
         System.out.println("}");
     }
@@ -25,9 +24,9 @@ class Function {
     String emitter() {
         StringBuilder sb = new StringBuilder();
         sb.append("define i32 @main() {");
-        sb.append("\nentry:");
+        sb.append("\n");
         for (BasicBlock block : blocks) {
-            sb.append("\n   ").append(block.stringify());
+            sb.append(block.stringify());
         }
         sb.append("\n}");
         return sb.toString();

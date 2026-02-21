@@ -3,26 +3,33 @@ package org.example;
 import java.util.ArrayDeque;
 import java.util.Deque;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 class TypeChecker {
 
-    private final Deque<Map<String, Type>> scopes = new ArrayDeque<>();
+    private final Deque<Map<String, Symbol>> scopes = new ArrayDeque<>();
 
     public TypeChecker() {
-        scopes.push(new HashMap<>()); // global scope
+        scopes.push(new HashMap<>());
+
+        declare(
+            "print",
+            new FunctionSymbol("print", List.of(Type.INT), Type.VOID)
+        );
     }
 
-    /* -------------------- EXPRESSIONS -------------------- */
+    /* ---------------- EXPRESSIONS ---------------- */
 
     Type visitExpr(Expr e) {
+        if (e instanceof CallExpr c) return visitCall(c);
         if (e instanceof LiteralExpr l) return visitLiteral(l);
         if (e instanceof BinaryExpr b) return visitBinary(b);
         if (e instanceof UnaryExpr u) return visitUnary(u);
-        if (e instanceof IdentifierExpr i) return visitIdentifier(i);
         if (e instanceof AssignExpr a) return visitAssign(a);
         if (e instanceof LogicalAndExpr l) return visitLogicalAnd(l);
         if (e instanceof LogicalOrExpr l) return visitLogicalOr(l);
+        if (e instanceof IdentifierExpr i) return visitIdentifier(i);
 
         throw new IllegalArgumentException("Unknown expression: " + e);
     }
@@ -34,20 +41,29 @@ class TypeChecker {
     }
 
     private Type visitIdentifier(IdentifierExpr e) {
-        Type t = lookup(e.getName());
-        e.type = t;
-        return t;
+        Symbol s = lookup(e.getName());
+
+        if (s instanceof FunctionSymbol f) throw new IllegalArgumentException(
+            "Function used as value: " + e.getName()
+        );
+        VarSymbol v = (VarSymbol) s;
+        return e.type = v.type;
     }
 
     private Type visitAssign(AssignExpr e) {
-        Type existing = lookup(e.name);
-        Type valueType = visitExpr(e.value);
+        Symbol s = lookup(e.name);
 
-        if (existing != valueType) throw new IllegalArgumentException(
-            "Type mismatch assigning " + valueType + " to " + existing
+        if (!(s instanceof VarSymbol v)) throw new IllegalArgumentException(
+            "Cannot assign to function: " + e.name
         );
 
-        return e.type = existing;
+        Type valueType = visitExpr(e.value);
+
+        if (valueType != v.type) throw new IllegalArgumentException(
+            "Type mismatch assigning " + valueType + " to " + v.type
+        );
+
+        return e.type = v.type;
     }
 
     private Type visitUnary(UnaryExpr e) {
@@ -70,7 +86,6 @@ class TypeChecker {
         Type right = visitExpr(e.right);
 
         switch (e.operator) {
-            // arithmetic
             case ADD:
             case SUB:
             case MUL:
@@ -78,12 +93,10 @@ class TypeChecker {
                 if (left == Type.INT && right == Type.INT) return e.type =
                     Type.INT;
                 break;
-            // equality
             case EQEQ:
             case NOT_EQ:
                 if (left == right) return e.type = Type.BOOL;
                 break;
-            // comparisons
             case LESS:
             case LESS_EQ:
             case GREATER:
@@ -118,7 +131,34 @@ class TypeChecker {
         return e.type = Type.BOOL;
     }
 
-    /* -------------------- STATEMENTS -------------------- */
+    private Type visitCall(CallExpr e) {
+        if (
+            !(e.callee instanceof IdentifierExpr id)
+        ) throw new IllegalArgumentException("Invalid call target");
+
+        // resolve symbol directly
+        Symbol s = lookup(id.getName());
+
+        if (
+            !(s instanceof FunctionSymbol f)
+        ) throw new IllegalArgumentException(id.getName() + " is not callable");
+
+        // check args
+        if (
+            e.args.size() != f.params.size()
+        ) throw new IllegalArgumentException("Wrong number of arguments");
+
+        for (int i = 0; i < e.args.size(); i++) {
+            Type argType = visitExpr(e.args.get(i));
+            if (argType != f.params.get(i)) throw new IllegalArgumentException(
+                "Argument mismatch"
+            );
+        }
+
+        return e.type = f.returnType;
+    }
+
+    /* ---------------- STATEMENTS ---------------- */
 
     void visitStmt(Stmt s) {
         if (s instanceof ExprStmt e) {
@@ -128,7 +168,7 @@ class TypeChecker {
 
         if (s instanceof LetStmt l) {
             Type t = visitExpr(l.getValue());
-            declare(l.getName(), t);
+            declare(l.getName(), new VarSymbol(l.getName(), t));
             return;
         }
 
@@ -141,11 +181,21 @@ class TypeChecker {
             visitIfStmt(i);
             return;
         }
+
+        if (s instanceof RetStmt r) {
+            visitExpr(r.getExpr());
+            return;
+        }
+
         throw new IllegalArgumentException("Unknown statement: " + s);
     }
 
     private void visitIfStmt(IfStmt i) {
-        visitExpr(i.condition);
+        Type cond = visitExpr(i.condition);
+        if (cond != Type.BOOL) throw new IllegalArgumentException(
+            "If condition must be boolean"
+        );
+
         visitBlock(i.thenBranch);
         if (i.elseBranch != null) visitBlock(i.elseBranch);
     }
@@ -158,23 +208,23 @@ class TypeChecker {
         scopes.pop();
     }
 
-    /* -------------------- SYMBOL LOGIC -------------------- */
+    /* ---------------- SYMBOL TABLE ---------------- */
 
-    private void declare(String name, Type type) {
-        Map<String, Type> current = scopes.peek();
+    private void declare(String name, Symbol symbol) {
+        Map<String, Symbol> current = scopes.peek();
 
         if (current.containsKey(name)) throw new IllegalArgumentException(
             "Redeclaration of " + name
         );
 
-        current.put(name, type);
+        current.put(name, symbol);
     }
 
-    private Type lookup(String name) {
-        for (Map<String, Type> scope : scopes) {
-            Type t = scope.get(name);
-            if (t != null) return t;
+    private Symbol lookup(String name) {
+        for (Map<String, Symbol> scope : scopes) {
+            Symbol s = scope.get(name);
+            if (s != null) return s;
         }
-        throw new IllegalArgumentException("Undefined variable: " + name);
+        throw new IllegalArgumentException("Undefined symbol: " + name);
     }
 }

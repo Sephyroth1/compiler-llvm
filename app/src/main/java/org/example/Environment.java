@@ -26,4 +26,22 @@ class Environment {
     void define(String name, Register reg) {
         vars.put(name, reg);
     }
+
+    void assign(String name, Register reg) {
+        if (vars.containsKey(name)) {
+            vars.put(name, reg);
+            return;
+        }
+        if (parent != null) {
+            parent.assign(name, reg);
+            return;
+        }
+        throw new RuntimeException("Undefined variable: " + name);
+    }
+
+    public Environment copy() {
+        Environment env = new Environment(this);
+        env.vars.putAll(this.vars);
+        return env;
+    }
 }

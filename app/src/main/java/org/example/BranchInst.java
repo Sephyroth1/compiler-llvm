@@ -18,13 +18,6 @@ class BranchInst extends Inst {
 
     @Override
     String stringify() {
-        return (
-            "Register: " +
-            cond.stringify() +
-            " Then: " +
-            thenB.stringify() +
-            " Else: " +
-            elseB.stringify()
-        );
+        return ("br i1 %" + cond.id + ", label %then, " + " label %else ");
     }
 }

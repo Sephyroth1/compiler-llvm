@@ -105,6 +105,10 @@ class Parser {
 
         while (true) {
             Token t = peek();
+            if (t.getType() == TokenType.LEFT_BRACKET) {
+                left = new CallExpr(left, parseArguments());
+                continue;
+            }
             int binding = infixBinding(t);
 
             if (binding == 0 || binding <= minBind) break;
@@ -172,19 +176,35 @@ class Parser {
             case LEFT_PAREN:
                 return parseBlockStmt();
             case IF:
-                next();
-                Expr condition = parseExpr(0);
+                next(); // consume 'if'
+
                 if (
-                    peek().getType() != TokenType.LEFT_PAREN
+                    peek().getType() != TokenType.LEFT_BRACKET
                 ) throw new IllegalArgumentException("Expected '(' after 'if'");
+                next(); // consume '('
+
+                Expr condition = parseExpr(0);
+
+                if (
+                    peek().getType() != TokenType.RIGHT_BRACKET
+                ) throw new IllegalArgumentException(
+                    "Expected ')' after condition"
+                );
+                next(); // consume ')'
 
                 BlockStmt thenBranch = parseBlockStmt();
+
                 BlockStmt elseBranch = new BlockStmt(new ArrayList<>());
                 if (peek().getType() == TokenType.ELSE) {
-                    next(); // consume 'else'
+                    next();
                     elseBranch = parseBlockStmt();
                 }
+
                 return new IfStmt(condition, thenBranch, elseBranch);
+            case RETURN:
+                next();
+                Expr value = parseExpr(0);
+                return new RetStmt(value);
             default:
                 return new ExprStmt(parseExpr(0));
         }
@@ -215,8 +235,33 @@ class Parser {
                 return Op.MUL;
             case DIVIDE:
                 return Op.DIV;
+            case EQEQ:
+                return Op.EQEQ;
             default:
-                throw new IllegalArgumentException("Invalid token type");
+                throw new IllegalArgumentException("Invalid token type" + type);
         }
+    }
+
+    public List<Expr> parseArguments() {
+        List<Expr> args = new ArrayList<>();
+        if (peek().getType() != TokenType.LEFT_BRACKET) {
+            throw new IllegalArgumentException(
+                "Expected '(' at start of arguments"
+            );
+        }
+        next(); // consume '['
+        while (!isAtEnd() && peek().getType() != TokenType.RIGHT_BRACKET) {
+            args.add(parseExpr(0));
+            if (peek().getType() == TokenType.COMMA) {
+                next(); // consume ','
+            }
+        }
+        if (!isAtEnd()) next(); // consume ')'
+        return args;
+    }
+
+    public CallExpr parseCallExpr(Expr callee) {
+        List<Expr> args = parseArguments();
+        return new CallExpr(callee, args);
     }
 }

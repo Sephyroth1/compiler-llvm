@@ -27,4 +27,6 @@ enum TokenType {
     ELSE,
     LEFT_BRACKET,
     RIGHT_BRACKET,
+    RETURN,
+    COMMA,
 }

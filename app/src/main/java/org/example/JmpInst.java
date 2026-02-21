@@ -15,6 +15,6 @@ class JmpInst extends Inst {
 
     @Override
     public String stringify() {
-        return "JmpInst " + target.stringify();
+        return "br label %" + target.name;
     }
 }

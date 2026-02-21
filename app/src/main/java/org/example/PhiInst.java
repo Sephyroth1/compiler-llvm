@@ -24,6 +24,22 @@ class PhiInst extends Inst {
 
     @Override
     public String stringify() {
-        return "PhiInst " + dst.stringify() + " " + inputs;
+        StringBuilder sb = new StringBuilder();
+        sb.append("%").append(dst.id).append(" = phi i32 ");
+
+        boolean first = true;
+        for (Map.Entry<BasicBlock, Register> e : inputs.entrySet()) {
+            if (!first) sb.append(", ");
+            first = false;
+
+            sb
+                .append("[ %")
+                .append(e.getValue().id)
+                .append(", %")
+                .append(e.getKey().name)
+                .append(" ]");
+        }
+
+        return sb.toString();
     }
 }
