@@ -98,8 +98,20 @@ cd compiler-llvm/Syntexa
 ./gradlew build
 ```
 
-4. Run the project
+4. Create a file and write your simple program
 ```sh
-./gradlew run
+touch input.txt
 ```
-### Note: If you want to give a separate input, go to the src/main/java/org/example/App.java and Edit the main function's String input
+```sh
+let a = 5
+let b = 6
+a + b
+```
+
+5. compile the program
+```sh
+./gradlew runLLVM -Pfile="input.txt"
+```
+
+### Note: You need to have llvm installed on your machine, at the very least you need clang for this
+### Note: This language can only compile basic programs, Not even a return instruction yet
